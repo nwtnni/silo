@@ -422,6 +422,7 @@ txn_logger::compute_ntxns_persisted_statistics()
   }
   INVARIANT(acc <= acc1);
   INVARIANT(acc1 <= acc2);
+  (void)acc2;
   if (acc == 0)
     return make_tuple(0, acc1, 0.0);
   return make_tuple(acc, acc1, double(num)/double(acc));

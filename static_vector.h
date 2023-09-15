@@ -174,9 +174,15 @@ public:
 private:
 
   template <typename ObjType>
-  class iterator_ : public std::iterator<std::bidirectional_iterator_tag, ObjType> {
+  class iterator_ {
     friend class static_vector;
   public:
+    using iterator_category = std::bidirectional_iterator_tag;
+    using value_type = ObjType;
+    using difference_type = std::ptrdiff_t;
+    using pointer = ObjType*;
+    using reference = ObjType&;
+
     inline iterator_() : p(0) {}
 
     template <typename O>

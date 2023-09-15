@@ -19,7 +19,7 @@
 // forward decl
 template <typename Traits> class transaction_proto2;
 template <template <typename> class Transaction>
-  class txn_epoch_sync;
+  struct txn_epoch_sync;
 
 // the system has a single logging subsystem (composed of multiple lgogers)
 // NOTE: currently, the persistence epoch is tied 1:1 with the ticker's epoch
@@ -29,7 +29,7 @@ class txn_logger {
     friend class transaction_proto2;
   // XXX: should only allow txn_epoch_sync<transaction_proto2> as friend
   template <template <typename> class T>
-    friend class txn_epoch_sync;
+    friend struct txn_epoch_sync;
 public:
 
   static const size_t g_nmax_loggers = 16;

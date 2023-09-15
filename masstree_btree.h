@@ -39,7 +39,7 @@ class simple_threadinfo {
     simple_threadinfo()
         : ts_(0) { // XXX?
     }
-    class rcu_callback {
+    class mrcu_callback {
     public:
       virtual void operator()(simple_threadinfo& ti) = 0;
     };
@@ -47,7 +47,7 @@ class simple_threadinfo {
  private:
     static inline void rcu_callback_function(void* p) {
       simple_threadinfo ti;
-      static_cast<rcu_callback*>(p)->operator()(ti);
+      static_cast<mrcu_callback*>(p)->operator()(ti);
     }
 
  public:
@@ -76,9 +76,9 @@ class simple_threadinfo {
     void increment_timestamp() {
 	ts_ += 2;
     }
-    void advance_timestamp(kvtimestamp_t x) {
-	if (circular_int<kvtimestamp_t>::less(ts_, x))
-	    ts_ = x;
+    template <typename N> void observe_phantoms(N* n) {
+      if (circular_int<kvtimestamp_t>::less(ts_, n->phantom_epoch_[0]))
+        ts_ = n->phantom_epoch_[0];
     }
 
     // event counters
@@ -148,7 +148,7 @@ class simple_threadinfo {
     }
 
     // RCU
-    void rcu_register(rcu_callback *cb) {
+    void rcu_register(mrcu_callback *cb) {
       scoped_rcu_base<false> guard;
       rcu::s_instance.free_with_fn(cb, rcu_callback_function);
     }
@@ -234,7 +234,7 @@ public:
   }
 
   ~mbtree() {
-    rcu_region guard;
+    [[maybe_unused]] rcu_region guard;
     threadinfo ti;
     table_.destroy(ti);
   }
@@ -243,7 +243,7 @@ public:
    * NOT THREAD SAFE
    */
   inline void clear() {
-    rcu_region guard;
+    [[maybe_unused]] rcu_region guard;
     threadinfo ti;
     table_.destroy(ti);
     table_.initialize(ti);
@@ -500,7 +500,7 @@ mbtree<P>::leftmost_descend_layer(node_base_type *n)
 
 template <typename P>
 void mbtree<P>::tree_walk(tree_walk_callback &callback) const {
-  rcu_region guard;
+  [[maybe_unused]] rcu_region guard;
   INVARIANT(rcu::s_instance.in_rcu_region());
   std::vector<node_base_type *> q, layers;
   q.push_back(table_.root());
@@ -584,7 +584,7 @@ template <typename P>
 inline bool mbtree<P>::search(const key_type &k, value_type &v,
                               versioned_node_t *search_info) const
 {
-  rcu_region guard;
+  [[maybe_unused]] rcu_region guard;
   threadinfo ti;
   Masstree::unlocked_tcursor<P> lp(table_, k.data(), k.length());
   bool found = lp.find_unlocked(ti);
@@ -600,12 +600,12 @@ inline bool mbtree<P>::insert(const key_type &k, value_type v,
                               value_type *old_v,
                               insert_info_t *insert_info)
 {
-  rcu_region guard;
+  [[maybe_unused]] rcu_region guard;
   threadinfo ti;
   Masstree::tcursor<P> lp(table_, k.data(), k.length());
   bool found = lp.find_insert(ti);
   if (!found)
-    ti.advance_timestamp(lp.node_timestamp());
+    ti.observe_phantoms(lp.node());
   if (found && old_v)
     *old_v = lp.value();
   lp.value() = v;
@@ -622,12 +622,12 @@ template <typename P>
 inline bool mbtree<P>::insert_if_absent(const key_type &k, value_type v,
                                         insert_info_t *insert_info)
 {
-  rcu_region guard;
+  [[maybe_unused]] rcu_region guard;
   threadinfo ti;
   Masstree::tcursor<P> lp(table_, k.data(), k.length());
   bool found = lp.find_insert(ti);
   if (!found) {
-    ti.advance_timestamp(lp.node_timestamp());
+    ti.observe_phantoms(lp.node());
     lp.value() = v;
     if (insert_info) {
       insert_info->node = lp.node();
@@ -648,7 +648,7 @@ inline bool mbtree<P>::insert_if_absent(const key_type &k, value_type v,
 template <typename P>
 inline bool mbtree<P>::remove(const key_type &k, value_type *old_v)
 {
-  rcu_region guard;
+  [[maybe_unused]] rcu_region guard;
   threadinfo ti;
   Masstree::tcursor<P> lp(table_, k.data(), k.length());
   bool found = lp.find_locked(ti);

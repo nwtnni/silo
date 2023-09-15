@@ -6,3 +6,6 @@ core
 tags
 config.mk
 out-*
+.task/
+third-party/deps_gcc/
+third-party/deps_clang/

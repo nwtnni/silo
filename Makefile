@@ -1,4 +1,5 @@
 -include config.mk
+TOP:=$(dir $(realpath $(firstword $(MAKEFILE_LIST))))
 
 ### Options ###
 
@@ -25,6 +26,7 @@ MODE ?= perf
 
 # run with 'MASSTREE=0' to turn off masstree
 MASSTREE ?= 1
+DEPS_BUILD_DIR ?= build_clang_release
 
 ###############
 
@@ -39,6 +41,7 @@ MASSTREE_CONFIG:=--enable-max-key-len=1024
 ifeq ($(DEBUG_S),1)
 	OSUFFIX_D=.debug
 	MASSTREE_CONFIG+=--enable-assertions
+	DEPS_BUILD_DIR=build_clang_debug
 else
 	MASSTREE_CONFIG+=--disable-assertions
 endif
@@ -75,8 +78,8 @@ else
 	$(error invalid mode)
 endif
 
-CXXFLAGS := -g -Wall -std=c++0x
-CXXFLAGS += -MD -Ithird-party/lz4 -DCONFIG_H=\"$(CONFIG_H)\"
+CXXFLAGS := -g -Wall -std=c++17 -funsigned-char
+CXXFLAGS += -MD -Ithird-party/lz4 -DCONFIG_H=\"$(CONFIG_H)\" -I$(TOP)/../../deps/fmt/include
 ifeq ($(DEBUG_S),1)
         CXXFLAGS += -fno-omit-frame-pointer -DDEBUG
 else
@@ -97,21 +100,23 @@ else
 endif
 
 TOP     := $(shell echo $${PWD-`pwd`})
-LDFLAGS := -lpthread -lnuma -lrt
+LDFLAGS := -lpthread -lnuma -lrt \
+	-L$(TOP)/../../$(DEPS_BUILD_DIR)/bin/ -Wl,-rpath,$(TOP)/../../$(DEPS_BUILD_DIR)/bin/ \
+	-L$(TOP)/../../$(DEPS_BUILD_DIR)/bin/lib -Wl,-rpath,$(TOP)/../../$(DEPS_BUILD_DIR)/bin/lib
 
 LZ4LDFLAGS := -Lthird-party/lz4 -llz4 -Wl,-rpath,$(TOP)/third-party/lz4
 
 ifeq ($(USE_MALLOC_MODE_S),1)
-        CXXFLAGS+=-DUSE_JEMALLOC
-        LDFLAGS+=-ljemalloc
+	CXXFLAGS+=-DUSE_JEMALLOC
+	LDFLAGS+=-ljemalloc
 	MASSTREE_CONFIG+=--with-malloc=jemalloc
 else ifeq ($(USE_MALLOC_MODE_S),2)
-        CXXFLAGS+=-DUSE_TCMALLOC
-        LDFLAGS+=-ltcmalloc
+	CXXFLAGS+=-DUSE_TCMALLOC
+	LDFLAGS+=-ltcmalloc
 	MASSTREE_CONFIG+=--with-malloc=tcmalloc
 else ifeq ($(USE_MALLOC_MODE_S),3)
-        CXXFLAGS+=-DUSE_FLOW
-        LDFLAGS+=-lflow
+	CXXFLAGS+=-DUSE_FLOW
+	LDFLAGS+=-lflow
 	MASSTREE_CONFIG+=--with-malloc=flow
 else
 	MASSTREE_CONFIG+=--with-malloc=malloc
@@ -148,8 +153,8 @@ OBJFILES := $(patsubst %.cc, $(O)/%.o, $(SRCFILES))
 
 MASSTREE_OBJFILES := $(patsubst masstree/%.cc, $(O)/%.o, $(MASSTREE_SRCFILES))
 
-BENCH_CXXFLAGS := $(CXXFLAGS)
-BENCH_LDFLAGS := $(LDFLAGS) -ldb_cxx -lz -lrt -lcrypt -laio -ldl -lssl -lcrypto
+BENCH_CXXFLAGS := $(CXXFLAGS) -I$(TOP)/../../$(DEPS_BUILD_DIR)/bin/include
+BENCH_LDFLAGS := $(LDFLAGS) -ldb_cxx -lz -lrt -lcrypt -laio -ldl -lssl -lcrypto -lfmt
 
 BENCH_SRCFILES = benchmarks/bdb_wrapper.cc \
 	benchmarks/bench.cc \
@@ -220,7 +225,7 @@ $(O)/stats_client: $(O)/stats_client.o
 
 masstree/config.h: $(O)/buildstamp.masstree masstree/configure masstree/config.h.in
 	rm -f $@
-	cd masstree; ./configure $(MASSTREE_CONFIG)
+	cd masstree; CXX=$(CXX) CPPFLAGS="-I$(TOP)/../../deps/fmt/include -I$(TOP)/../../$(DEPS_BUILD_DIR)/bin/include" LDFLAGS=-L$(TOP)/../../$(DEPS_BUILD_DIR)/bin/lib ./configure $(MASSTREE_CONFIG)
 	if test -f $@; then touch $@; fi
 
 masstree/configure masstree/config.h.in: masstree/configure.ac

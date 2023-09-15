@@ -34,7 +34,7 @@ struct basic_px_group {
   basic_px_group(basic_px_group &&) = delete;
 
   static const size_t GroupSize = N;
-  friend class basic_px_queue<T, N>;
+  friend struct basic_px_queue<T, N>;
 
 private:
   basic_px_group *next_;
@@ -75,8 +75,14 @@ struct basic_px_queue {
   }
 
   template <typename PtrType, typename ObjType>
-  class iterator_ : public std::iterator<std::forward_iterator_tag, ObjType> {
+  class iterator_ {
   public:
+    using iterator_category = std::forward_iterator_tag;
+    using value_type = ObjType;
+    using difference_type = std::ptrdiff_t;
+    using pointer = ObjType*;
+    using reference = ObjType&;
+
     inline iterator_() : px_(nullptr), i_() {}
     inline iterator_(PtrType *px) : px_(px), i_() {}
 

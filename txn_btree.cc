@@ -101,12 +101,12 @@ struct rec {
   uint64_t v;
 };
 
-static inline ostream &
-operator<<(ostream &o, const rec &r)
-{
-  o << "[rec=" << r.v << "]";
-  return o;
-}
+// static inline ostream &
+// operator<<(ostream &o, const rec &r)
+// {
+//   o << "[rec=" << r.v << "]";
+//   return o;
+// }
 
 template <template <typename> class TxnType, typename Traits>
 static void
@@ -705,7 +705,7 @@ namespace mp_stress_test_allocator_ns {
   static const size_t nworkers = 28;
   static const size_t nkeys = nworkers * 4;
 
-  static atomic<bool> running(true);
+  atomic<bool> running(true);
 
   template <template <typename> class TxnType, typename Traits>
   class worker : public txn_btree_worker<TxnType> {

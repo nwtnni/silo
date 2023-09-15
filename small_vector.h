@@ -14,14 +14,14 @@
  * XXX(stephentu): allow custom allocator
  */
 template <typename T, size_t SmallSize = SMALL_SIZE_VEC>
-class small_vector {
+class silo_small_vector {
   typedef std::vector<T> large_vector_type;
 
   static const bool is_trivially_destructible =
     private_::is_trivially_destructible<T>::value;
 
   // std::is_trivially_copyable not supported in g++-4.7
-  static const bool is_trivially_copyable = std::is_scalar<T>::value;
+  static const bool is_trivially_copyable = std::is_trivially_copyable<T>::value;
 
 public:
 
@@ -30,20 +30,20 @@ public:
   typedef const T & const_reference;
   typedef size_t size_type;
 
-  small_vector() : n(0), large_elems(0) {}
-  ~small_vector()
+  silo_small_vector() : n(0), large_elems(0) {}
+  ~silo_small_vector()
   {
     clearDestructive();
   }
 
-  small_vector(const small_vector &that)
+  silo_small_vector(const silo_small_vector &that)
     : n(0), large_elems(0)
   {
     assignFrom(that);
   }
 
   // not efficient, don't use in performance critical parts
-  small_vector(std::initializer_list<T> l)
+  silo_small_vector(std::initializer_list<T> l)
     : n(0), large_elems(nullptr)
   {
     if (l.size() > SmallSize) {
@@ -54,8 +54,8 @@ public:
     }
   }
 
-  small_vector &
-  operator=(const small_vector &that)
+  silo_small_vector &
+  operator=(const silo_small_vector &that)
   {
     assignFrom(that);
     return *this;
@@ -88,7 +88,7 @@ public:
   inline const_reference
   front() const
   {
-    return const_cast<small_vector *>(this)->front();
+    return const_cast<silo_small_vector *>(this)->front();
   }
 
   inline reference
@@ -104,7 +104,7 @@ public:
   inline const_reference
   back() const
   {
-    return const_cast<small_vector *>(this)->back();
+    return const_cast<silo_small_vector *>(this)->back();
   }
 
   inline void
@@ -164,7 +164,7 @@ public:
   inline const_reference
   operator[](int i) const
   {
-    return const_cast<small_vector *>(this)->operator[](i);
+    return const_cast<silo_small_vector *>(this)->operator[](i);
   }
 
   void
@@ -219,9 +219,15 @@ private:
   }
 
   template <typename ObjType>
-  class small_iterator_ : public std::iterator<std::bidirectional_iterator_tag, ObjType> {
-    friend class small_vector;
+  class small_iterator_ {
+    friend class silo_small_vector;
   public:
+    using iterator_category = std::bidirectional_iterator_tag;
+    using value_type = ObjType;
+    using difference_type = std::ptrdiff_t;
+    using pointer = ObjType*;
+    using reference = ObjType&;
+
     inline small_iterator_() : p(0) {}
 
     template <typename O>
@@ -349,9 +355,15 @@ private:
   };
 
   template <typename ObjType, typename SmallTypeIter, typename LargeTypeIter>
-  class iterator_ : public std::iterator<std::bidirectional_iterator_tag, ObjType> {
-    friend class small_vector;
+  class iterator_ {
+    friend class silo_small_vector;
   public:
+    using iterator_category = std::bidirectional_iterator_tag;
+    using value_type = ObjType;
+    using difference_type = std::ptrdiff_t;
+    using pointer = ObjType*;
+    using reference = ObjType&;
+
     inline iterator_() : large(false) {}
 
     template <typename O, typename S, typename L>
@@ -609,7 +621,7 @@ public:
 
 private:
   void
-  assignFrom(const small_vector &that)
+  assignFrom(const silo_small_vector &that)
   {
     if (unlikely(this == &that))
       return;

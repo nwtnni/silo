@@ -160,9 +160,15 @@ private:
   template <typename SmallIterType,
             typename LargeIterType,
             typename ValueType>
-  class iterator_ : public std::iterator<std::forward_iterator_tag, ValueType> {
+  class iterator_ {
     friend class small_unordered_map;
   public:
+    using iterator_category = std::forward_iterator_tag;
+    using value_type = ValueType;
+    using difference_type = std::ptrdiff_t;
+    using pointer = ValueType*;
+    using reference = ValueType&;
+
     inline iterator_() : large(false), b(0) {}
 
     template <typename S, typename L, typename V>

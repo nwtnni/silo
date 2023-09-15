@@ -2229,8 +2229,8 @@ tpcc_do_test(const string &dbtype,
     cerr << "  new_order_fast_id_gen        : " << g_new_order_fast_id_gen << endl;
     cerr << "  uniform_item_dist            : " << g_uniform_item_dist << endl;
     cerr << "  workload_mix                 : " <<
-      format_list(g_txn_workload_mix,
-                  g_txn_workload_mix + ARRAY_NELEMS(g_txn_workload_mix)) << endl;
+    format_list(g_txn_workload_mix,
+                g_txn_workload_mix + ARRAY_NELEMS(g_txn_workload_mix)) << endl;
   }
 
   unique_ptr<abstract_db> db;

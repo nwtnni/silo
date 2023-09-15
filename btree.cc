@@ -8,6 +8,7 @@
 #include <sstream>
 #include <atomic>
 #include <memory>
+#include <climits>
 
 #include "core.h"
 #include "btree.h"
@@ -326,7 +327,8 @@ test6()
 {
   testing_concurrent_btree btr;
   const size_t nkeys = 1000;
-  for (size_t i = 0; i < nkeys; i++)
+  size_t i;
+  for (i = 0; i < nkeys; i++)
     btr.insert(u64_varkey(i), (typename testing_concurrent_btree::value_type) i);
   btr.invariant_checker();
   ALWAYS_ASSERT(btr.size() == nkeys);
@@ -338,8 +340,10 @@ test6()
   u64_varkey max_key(600);
   btr.search_range(u64_varkey(500), &max_key, cb);
   ALWAYS_ASSERT(data.size() == 100);
-  for (size_t i = 0; i < 100; i++) {
-    const varkey lhs(data[i].first), rhs(u64_varkey(500 + i));
+  for (i = 0; i < 100; i++) {
+    const varkey lhs(data[i].first);
+    const auto rhs_inner = u64_varkey(500 + i);
+    const varkey rhs(rhs_inner);
     ALWAYS_ASSERT(lhs == rhs);
     ALWAYS_ASSERT(data[i].second == (typename testing_concurrent_btree::value_type) (500 + i));
   }
@@ -762,7 +766,7 @@ test_null_keys_2()
 static inline string
 maxkey(unsigned size)
 {
-  return string(size, 255);
+  return string(size, CHAR_MAX);
 }
 
 static void

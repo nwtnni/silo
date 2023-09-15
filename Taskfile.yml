@@ -1,0 +1,24 @@
+# https://taskfile.dev
+
+version: '3'
+
+tasks:
+  default:
+    cmds:
+      - task --list
+
+  install_deps:
+    desc: "install deps"
+    cmds:
+      - sudo apt-get install -y libaio-dev libdb++-dev
+
+  debug-build-check:
+    desc: "debug build with clang-15"
+    cmds:
+      - CXX=clang++-15 MODE=perf DEBUG=1 CHECK_INVARIANTS=1 make -j
+
+  release-build:
+    desc: "build benchmark"
+    cmds:
+      - CXX=clang++-15 MODE=perf make -j
+

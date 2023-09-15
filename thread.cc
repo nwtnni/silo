@@ -10,7 +10,7 @@ ndb_thread::~ndb_thread()
 void
 ndb_thread::start()
 {
-  thd_ = std::move(thread(&ndb_thread::run, this));
+  thd_ = thread(&ndb_thread::run, this);
   if (daemon_)
     thd_.detach();
 }
