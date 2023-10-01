@@ -20,6 +20,7 @@
 #include "record/encoder.h"
 #include "record/inline_str.h"
 #include "record/cursor.h"
+#include "util.h"
 
 #ifdef PROTO2_CAN_DISABLE_GC
 #include "txn_proto2_impl.h"
@@ -853,7 +854,7 @@ TestCursor()
 
   typedef serializer<int32_t, true> si32;
   typedef serializer<inline_str_fixed<25>, true> sistr25;
-  ALWAYS_ASSERT(si32::nbytes(&v.v2) == v2_oldsz);
+  ALWAYS_ASSERT(si32::nbytes(member(&v, v2)) == v2_oldsz);
   ALWAYS_ASSERT(sistr25::nbytes(&v.v4) == v4_oldsz);
   ALWAYS_ASSERT(cursorrec::value_descriptor::nbytes_fn(2)((const uint8_t *) &v.v2) == v2_oldsz);
   ALWAYS_ASSERT(cursorrec::value_descriptor::nbytes_fn(4)((const uint8_t *) &v.v4) == v4_oldsz);

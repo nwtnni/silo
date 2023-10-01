@@ -118,13 +118,13 @@ Size(const T &t)
 
 #define SERIALIZE_READ_FIELD(tpe, name, compress, trfm) \
   do { \
-    buf = serializer< tpe, compress >::read(buf, &obj->name); \
+    buf = serializer< tpe, compress >::read(buf, member(obj, name)); \
     obj->name = trfm(tpe, obj->name); \
   } while (0);
 
 #define SERIALIZE_PREFIX_READ_FIELD(tpe, name, compress, trfm) \
   do { \
-    buf = serializer< tpe, compress >::read(buf, &obj->name); \
+    buf = serializer< tpe, compress >::read(buf, member(obj, name)); \
     obj->name = trfm(tpe, obj->name); \
     if (++i >= prefix) \
       return; \
@@ -133,7 +133,7 @@ Size(const T &t)
 #define SERIALIZE_FAILSAFE_READ_FIELD(tpe, name, compress, trfm) \
   do { \
     const uint8_t * const p = \
-      serializer< tpe, compress >::failsafe_read(buf, nbytes, &obj->name); \
+      serializer< tpe, compress >::failsafe_read(buf, nbytes, member(obj, name)); \
     if (unlikely(!p)) \
       return false; \
     nbytes -= (p - buf); \
@@ -143,7 +143,7 @@ Size(const T &t)
 
 #define SERIALIZE_NBYTES_FIELD(tpe, name, compress) \
   do { \
-    size += serializer< tpe, compress >::nbytes(&obj->name); \
+    size += serializer< tpe, compress >::nbytes(member(obj, name)); \
   } while (0);
 
 #define SERIALIZE_MAX_NBYTES_KEY_FIELD_X(tpe, name) \

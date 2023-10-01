@@ -21,6 +21,9 @@
 #include "macros.h"
 #include "small_vector.h"
 
+#define member(structPtr, memberName) \
+  ((std::remove_reference_t<decltype((structPtr)->memberName)>*)(((char*)(structPtr)) + offsetof(std::remove_reference_t<decltype(*(structPtr))>, memberName)))
+
 namespace util {
 
 // padded, aligned primitives

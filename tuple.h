@@ -353,7 +353,7 @@ public:
       (HDR_LOCKED_MASK | HDR_WRITE_INTENT_MASK) :
       (HDR_LOCKED_MASK);
     while (IsLocked(v) ||
-           !__sync_bool_compare_and_swap(&hdr, v, v | lockmask)) {
+           !__sync_bool_compare_and_swap(member(this, hdr), v, v | lockmask)) {
       nop_pause();
       v = hdr;
 #ifdef ENABLE_EVENT_COUNTERS
