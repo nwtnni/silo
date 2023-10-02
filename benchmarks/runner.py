@@ -631,15 +631,15 @@ def run_configuration(
     + ([] if not log_compress else ['--log-compress']) \
     + ([] if not disable_gc else ['--disable-gc']) \
     + ([] if not disable_snapshots else ['--disable-snapshots'])
-  print >>sys.stderr, '[INFO] running command:'
-  print >>sys.stderr, ('DISABLE_MADV_WILLNEED=1' if disable_madv_willneed else ''), ' '.join([x.replace(' ', r'\ ') for x in args])
+  print('[INFO] running command:', file=sys.stderr)
+  print(('DISABLE_MADV_WILLNEED=1' if disable_madv_willneed else ''), ' '.join([x.replace(' ', r'\ ') for x in args]), file=sys.stderr)
   if not DRYRUN:
     with open('stderr.log', 'w') as err:
       env = dict(os.environ)
       if disable_madv_willneed:
         env['DISABLE_MADV_WILLNEED'] = '1'
       p = subprocess.Popen(args, stdin=open('/dev/null', 'r'), stdout=subprocess.PIPE, stderr=err, env=env)
-      print >>sys.stderr, 'pid=', p.pid
+      print('pid=', p.pid, file=sys.stderr)
       r = p.stdout.read()
       retcode = p.wait()
       toks = r.strip().split(' ')
@@ -647,7 +647,7 @@ def run_configuration(
     assert check_binary_executable(binary)
     toks = [0,0,0,0,0]
   if len(toks) != 5:
-    print 'Failure: retcode=', retcode, ', stdout=', r
+    print('Failure: retcode=', retcode, ', stdout=', r)
     import shutil
     shutil.copyfile('stderr.log', 'stderr.%d.log' % p.pid)
     if ntries:
@@ -658,7 +658,7 @@ def run_configuration(
           assignments, log_fake_writes, log_nofsync, log_compress,
           disable_gc, disable_snapshots, ntries - 1)
     else:
-      print "Out of tries!"
+      print("Out of tries!")
       assert False
   return tuple(map(float, toks))
 
@@ -671,19 +671,18 @@ if __name__ == '__main__':
   failed = []
   for binary in binaries:
     if not check_binary_executable(binary):
-      print >>sys.stderr, '[ERROR] cannot find binary %s' % binary
+      print('[ERROR] cannot find binary %s' % binary, file=sys.stderr)
       failed.append(binary)
   if failed:
     r = re.compile(r'out-(.*)\.(masstree|silotree)')
-    print >>sys.stderr, \
-        '[INFO] Try running the following commands in the root source directory:'
+    print('[INFO] Try running the following commands in the root source directory:', file=sys.stderr)
     for binary in failed:
       folder = binary.split(os.sep)[1]
       m = r.match(folder)
       if not m:
-        print >>sys.stderr, '[ERROR] bad binary name %s' % binary
+        print('[ERROR] bad binary name %s' % binary, file=sys.stderr)
       else:
-        print >>sys.stderr, 'MASSTREE=%d MODE=%s make -j dbtest' % (1 if m.group(2) == 'masstree' else 0, m.group(1))
+        print('MASSTREE=%d MODE=%s make -j dbtest' % (1 if m.group(2) == 'masstree' else 0, m.group(1)), file=sys.stderr)
     sys.exit(1)
 
   # iterate over all configs
@@ -725,7 +724,7 @@ if __name__ == '__main__':
         'disable_gc'            : disable_gc,
         'disable_snapshots'     : disable_snapshots,
       }
-      print >>sys.stderr, '[INFO] running config %s' % (str(config))
+      print('[INFO] running config %s' % (str(config)), file=sys.stderr)
       if persist != PERSIST_NONE:
         info = MACHINE_CONFIG[node]['logfiles']
         tempprefix = MACHINE_CONFIG[node]['tempprefix']
@@ -751,9 +750,9 @@ if __name__ == '__main__':
       results.append((config, values))
 
     # write intermediate results
-    with open(outfile + '.py', 'w') as fp:
-      print >>fp, 'RESULTS = %s' % (repr(results))
+    with open(outfile + '.py', 'a') as fp:
+      fp.write('RESULTS = %s\n' % (repr(results)))
 
   # write results
-  with open(outfile + '.py', 'w') as fp:
-    print >>fp, 'RESULTS = %s' % (repr(results))
+  with open(outfile + '.py', 'a') as fp:
+    fp.write('RESULTS = %s\n' % (repr(results)))
