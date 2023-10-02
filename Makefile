@@ -10,7 +10,8 @@ CHECK_INVARIANTS ?= 0
 # 1 = jemalloc
 # 2 = tcmalloc
 # 3 = flow
-USE_MALLOC_MODE ?= 1
+# 4 = mimalloc
+USE_MALLOC_MODE ?= 4
 
 MYSQL ?= 1
 MYSQL_SHARE_DIR ?= /x/stephentu/mysql-5.5.29/build/sql/share
@@ -79,7 +80,7 @@ else
 endif
 
 CXXFLAGS := -g -Wall -std=c++17 -funsigned-char
-CXXFLAGS += -MD -Ithird-party/lz4 -DCONFIG_H=\"$(CONFIG_H)\" -I$(TOP)/../../deps/fmt/include
+CXXFLAGS += -MD -Ithird-party/lz4 -DCONFIG_H=\"$(CONFIG_H)\" -I$(TOP)/../../deps/fmt/include -I$(TOP)/../../deps/mimalloc/include
 ifeq ($(DEBUG_S),1)
         CXXFLAGS += -fno-omit-frame-pointer -DDEBUG
 else
@@ -118,6 +119,10 @@ else ifeq ($(USE_MALLOC_MODE_S),3)
 	CXXFLAGS+=-DUSE_FLOW
 	LDFLAGS+=-lflow
 	MASSTREE_CONFIG+=--with-malloc=flow
+else ifeq ($(USE_MALLOC_MODE_S),4)
+	CXXFLAGS+=-DUSE_MIMALLOC
+	LDFLAGS+=-lmimalloc
+	MASSTREE_CONFIG+=--with-malloc=mimalloc
 else
 	MASSTREE_CONFIG+=--with-malloc=malloc
 endif
@@ -225,7 +230,7 @@ $(O)/stats_client: $(O)/stats_client.o
 
 masstree/config.h: $(O)/buildstamp.masstree masstree/configure masstree/config.h.in
 	rm -f $@
-	cd masstree; CXX=$(CXX) CPPFLAGS="-I$(TOP)/../../deps/fmt/include -I$(TOP)/../../$(DEPS_BUILD_DIR)/bin/include" LDFLAGS=-L$(TOP)/../../$(DEPS_BUILD_DIR)/bin/lib ./configure $(MASSTREE_CONFIG)
+	cd masstree; CXX=$(CXX) CPPFLAGS="-I$(TOP)/../../deps/fmt/include -I$(TOP)/../../deps/mimalloc/include" LDFLAGS=-L$(TOP)/../../$(DEPS_BUILD_DIR)/bin/ ./configure $(MASSTREE_CONFIG)
 	if test -f $@; then touch $@; fi
 
 masstree/configure masstree/config.h.in: masstree/configure.ac

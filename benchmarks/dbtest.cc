@@ -358,6 +358,8 @@ main(int argc, char **argv)
     cerr << "  allocator   : tcmalloc"                      << endl;
 #elif defined USE_FLOW
     cerr << "  allocator   : flow"                          << endl;
+#elif defined USE_MIMALLOC
+    cerr << "  allocator   : mimalloc"                      << endl;
 #else
     cerr << "  allocator   : libc"                          << endl;
 #endif
