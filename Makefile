@@ -100,7 +100,7 @@ else
 endif
 
 TOP     := $(shell echo $${PWD-`pwd`})
-LDFLAGS := -lpthread -lnuma -lrt \
+LDFLAGS := -lpthread -lnuma -lrt -lfmt \
 	-L$(TOP)/../../$(DEPS_BUILD_DIR)/bin/ -Wl,-rpath,$(TOP)/../../$(DEPS_BUILD_DIR)/bin/ \
 	-L$(TOP)/../../$(DEPS_BUILD_DIR)/bin/lib -Wl,-rpath,$(TOP)/../../$(DEPS_BUILD_DIR)/bin/lib
 

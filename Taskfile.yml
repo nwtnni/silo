@@ -21,4 +21,6 @@ tasks:
     desc: "build benchmark"
     cmds:
       - CXX=clang++-15 MODE=perf make -j
+      - CXX=clang++-15 MODE=perf make -j dbtest
+      - CXX=clang++-15 MODE=perf make -j newdbtest
 

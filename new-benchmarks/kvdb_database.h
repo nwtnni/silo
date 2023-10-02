@@ -419,7 +419,9 @@ public:
   abort()
   {
     // should never abort
-    ALWAYS_ASSERT(false);
+    fprintf(stderr, "should never abort\n");
+    exit(1);
+    // ALWAYS_ASSERT(false);
   }
 
 private:

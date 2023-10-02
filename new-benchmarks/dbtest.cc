@@ -212,7 +212,7 @@ main(int argc, char **argv)
 
   // initialize the numa allocator
   if (numa_memory > 0) {
-    const size_t maxpercpu = iceil(
+    const size_t maxpercpu = util::iceil(
         numa_memory / nthreads, ::allocator::GetHugepageSize());
     numa_memory = maxpercpu * nthreads;
     ::allocator::Initialize(nthreads, maxpercpu);
@@ -330,11 +330,11 @@ main(int argc, char **argv)
   }
 
   vector<string> bench_toks = split_ws(bench_opts);
-  int argc = 1 + bench_toks.size();
-  char *argv[argc];
-  argv[0] = (char *) bench_type.c_str();
+  int argc2 = 1 + bench_toks.size();
+  char *argv2[argc2];
+  argv2[0] = (char *) bench_type.c_str();
   for (size_t i = 1; i <= bench_toks.size(); i++)
-    argv[i] = (char *) bench_toks[i - 1].c_str();
-  test_fn(db_type, cfg, argc, argv);
+    argv2[i] = (char *) bench_toks[i - 1].c_str();
+  test_fn(db_type, cfg, argc2, argv2);
   return 0;
 }
