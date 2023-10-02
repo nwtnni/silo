@@ -9,3 +9,4 @@ out-*
 .task/
 third-party/deps_gcc/
 third-party/deps_clang/
+jemalloc.stats
