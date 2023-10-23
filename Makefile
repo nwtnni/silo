@@ -79,7 +79,7 @@ else
 	$(error invalid mode)
 endif
 
-CXXFLAGS := -g -Wall -std=c++17 -funsigned-char
+CXXFLAGS := -g -Wall -std=c++2b -funsigned-char -fno-strict-aliasing
 CXXFLAGS += -MD -Ithird-party/lz4 -DCONFIG_H=\"$(CONFIG_H)\" -I$(TOP)/../../deps/fmt/include -I$(TOP)/../../deps/mimalloc/include
 ifeq ($(DEBUG_S),1)
         CXXFLAGS += -fno-omit-frame-pointer -DDEBUG
