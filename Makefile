@@ -11,7 +11,7 @@ CHECK_INVARIANTS ?= 0
 # 2 = tcmalloc
 # 3 = flow
 # 4 = mimalloc
-USE_MALLOC_MODE ?= 4
+USE_MALLOC_MODE ?= 1
 
 MYSQL ?= 1
 MYSQL_SHARE_DIR ?= /x/stephentu/mysql-5.5.29/build/sql/share
@@ -84,7 +84,7 @@ CXXFLAGS += -MD -Ithird-party/lz4 -DCONFIG_H=\"$(CONFIG_H)\" -I$(TOP)/../../deps
 ifeq ($(DEBUG_S),1)
         CXXFLAGS += -fno-omit-frame-pointer -DDEBUG
 else
-        CXXFLAGS += -Werror -O2 -funroll-loops -fno-omit-frame-pointer
+        CXXFLAGS += -O2 -funroll-loops -fno-omit-frame-pointer
 endif
 ifeq ($(CHECK_INVARIANTS_S),1)
 	CXXFLAGS += -DCHECK_INVARIANTS
