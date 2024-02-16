@@ -45,7 +45,7 @@ event_counter::get_all_counters()
   map<string, counter_data> ret;
   const map<string, event_ctx *> &evts = event_ctx::event_counters();
   spinlock &l = event_ctx::event_counters_lock();
-  lock_guard<spinlock> sl(l);
+  ::lock_guard<spinlock> sl(l);
   for (auto &p : evts) {
     counter_data d;
     p.second->stat(d);
@@ -61,7 +61,7 @@ event_counter::reset_all_counters()
 {
   const map<string, event_ctx *> &evts = event_ctx::event_counters();
   spinlock &l = event_ctx::event_counters_lock();
-  lock_guard<spinlock> sl(l);
+  ::lock_guard<spinlock> sl(l);
   for (auto &p : evts)
     for (size_t i = 0; i < coreid::NMaxCores; i++) {
       p.second->counts_[i] = 0;
@@ -79,7 +79,7 @@ event_counter::stat(const string &name, counter_data &d)
   spinlock &l = event_ctx::event_counters_lock();
   event_ctx *ctx = nullptr;
   {
-    lock_guard<spinlock> sl(l);
+    ::lock_guard<spinlock> sl(l);
     auto it = evts.find(name);
     if (it != evts.end())
       ctx = it->second;
