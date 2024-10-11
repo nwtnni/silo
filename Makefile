@@ -47,6 +47,7 @@ MASSTREE_CONFIG:=--enable-max-key-len=1024
 ROOT_MIMALLOC=$(TOP)/../mimalloc-bench/extern/mi2
 ROOT_CXLALLOC=$(TOP)/../..
 ROOT_RALLOC=$(TOP)/../mimalloc-bench/extern/r
+ROOT_CXL_SHM=$(TOP)/../mimalloc-bench/extern/cxl-shm
 
 ifeq ($(DEBUG_S),1)
 	OSUFFIX_D=.debug
@@ -114,9 +115,15 @@ LDFLAGS := -lpthread -lnuma -lrt -lfmt
 ifeq (${USE_CXL_MODE_S},1)
 	CPPFLAGS += -I$(ROOT_CXLALLOC)/cxlalloc-static/include -DUSE_CXL_MODE=1
 	LDFLAGS += -L$(ROOT_CXLALLOC)/target/release -lcxlalloc_static
+	O := $(O).cxlalloc
 else ifeq (${USE_CXL_MODE_S},2)
 	CPPFLAGS += -I$(ROOT_RALLOC)/src -DUSE_CXL_MODE=2
-	LDFLAGS += -L$(ROOT_RALLOC)/build -lralloc_static
+	LDFLAGS += -L$(ROOT_RALLOC)/build -lralloc_static -lralloc
+	O := $(O).ralloc
+else ifeq (${USE_CXL_MODE_S},3)
+	CPPFLAGS += -I$(ROOT_CXL_SHM)/include -DUSE_CXL_MODE=3
+	LDFLAGS += -L$(ROOT_CXL_SHM)/build -lcxlmalloc_static -lcxlmalloc -latomic -L$(ROOT_MIMALLOC)/out/release/static -lmimalloc
+	O := $(O).cxl-shm
 endif
 
 LZ4LDFLAGS := -Lthird-party/lz4 -llz4 -Wl,-rpath,$(TOP)/third-party/lz4
@@ -211,11 +218,11 @@ $(O)/benchmarks/masstree/%.o: benchmarks/masstree/%.cc $(O)/buildstamp $(O)/buil
 
 $(O)/new-benchmarks/%.o: new-benchmarks/%.cc $(O)/buildstamp $(O)/buildstamp.bench $(OBJDEP)
 	@mkdir -p $(@D)
-	$(CXX) $(CXXFLAGS) -c $< -o $@
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
 
 $(O)/%.o: %.cc $(O)/buildstamp $(OBJDEP)
 	@mkdir -p $(@D)
-	$(CXX) $(CXXFLAGS) -c $< -o $@
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
 
 $(MASSTREE_OBJFILES) : $(O)/%.o: masstree/%.cc masstree/config.h
 	@mkdir -p $(@D)
