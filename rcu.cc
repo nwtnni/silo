@@ -9,6 +9,8 @@
 
 #if USE_CXL_MODE == 1
 #include <cxlalloc.h>
+#elif USE_CLX_MODE == 2
+#include <ralloc_static.h>
 #endif
 
 #include "rcu.h"
@@ -109,6 +111,8 @@ rcu::sync::alloc(size_t sz)
 {
 #if USE_CXL_MODE == 1
   return cxlalloc_malloc(sz);
+#elif USE_CXL_MODE == 2
+  return RP_malloc(sz);
 #endif
 
   if (pin_cpu_ == -1)
@@ -138,6 +142,8 @@ rcu::sync::alloc_static(size_t sz)
 {
 #if USE_CXL_MODE == 1
   return cxlalloc_malloc(sz);
+#elif USE_CXL_MODE == 2
+  return RP_malloc(sz);
 #endif
 
   if (pin_cpu_ == -1)
@@ -154,6 +160,8 @@ rcu::sync::dealloc(void *p, size_t sz)
 {
 #if USE_CXL_MODE == 1
   return cxlalloc_free(p);
+#elif USE_CXL_MODE == 2
+  return RP_free(p);
 #endif
 
   if (!::allocator::ManagesPointer(p)) {
