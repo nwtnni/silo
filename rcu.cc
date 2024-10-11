@@ -7,6 +7,10 @@
 #include <thread>
 #include <atomic>
 
+#if USE_CXL_MODE == 1
+#include <cxlalloc.h>
+#endif
+
 #include "rcu.h"
 #include "macros.h"
 #include "util.h"
@@ -103,6 +107,10 @@ check_pointer_or_die(void *p, size_t alloc_size)
 void *
 rcu::sync::alloc(size_t sz)
 {
+#if USE_CXL_MODE == 1
+  return cxlalloc_malloc(sz);
+#endif
+
   if (pin_cpu_ == -1)
     // fallback to regular allocator
     return malloc(sz);
@@ -128,6 +136,10 @@ rcu::sync::alloc(size_t sz)
 void *
 rcu::sync::alloc_static(size_t sz)
 {
+#if USE_CXL_MODE == 1
+  return cxlalloc_malloc(sz);
+#endif
+
   if (pin_cpu_ == -1)
     return malloc(sz);
   // round up to hugepagesize
@@ -140,6 +152,10 @@ rcu::sync::alloc_static(size_t sz)
 void
 rcu::sync::dealloc(void *p, size_t sz)
 {
+#if USE_CXL_MODE == 1
+  return cxlalloc_free(p);
+#endif
+
   if (!::allocator::ManagesPointer(p)) {
     ::free(p);
     return;
@@ -165,6 +181,10 @@ rcu::sync::dealloc(void *p, size_t sz)
 bool
 rcu::sync::try_release()
 {
+#if USE_CXL_MODE != 0
+  return true;
+#endif
+
   // XXX: tune
   static const size_t threshold = 10000;
   // only release if there are > threshold segments to release (over all arenas)
@@ -182,6 +202,10 @@ rcu::sync::try_release()
 void
 rcu::sync::do_release()
 {
+#if USE_CXL_MODE != 0
+  return;
+#endif
+
 #ifdef MEMCHECK_MAGIC
   for (size_t i = 0; i < ::allocator::MAX_ARENAS; i++) {
     const size_t alloc_size = (i + 1) * ::allocator::AllocAlignment;
@@ -292,6 +316,11 @@ rcu::pin_current_thread(size_t cpu)
   ALWAYS_ASSERT(!numa_run_on_node(node));
   // is numa_run_on_node() guaranteed to take effect immediately?
   ALWAYS_ASSERT(!sched_yield());
+
+#if USE_CXL_MODE != 0
+  return;
+#endif
+
   // release current thread-local cache back to allocator
   s.do_release();
 }
@@ -302,6 +331,11 @@ rcu::fault_region()
   sync &s = mysync();
   if (s.get_pin_cpu() == -1)
     return;
+
+#if USE_CXL_MODE != 0
+  return;
+#endif
+
   ::allocator::FaultRegion(s.get_pin_cpu());
 }
 

@@ -10,6 +10,9 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/sysinfo.h>
+#if USE_CXL_MODE == 1
+#include <cxlalloc.h>
+#endif
 
 #include "../allocator.h"
 #include "../stats_server.h"
@@ -396,6 +399,10 @@ main(int argc, char **argv)
     stats_server *srvr = new stats_server(stats_server_sockfile);
     thread(&stats_server::serve_forever, srvr).detach();
   }
+
+#if USE_CXL_MODE == 1
+  cxlalloc_init("", 1ull << 34, 0xFF, 64, 0, 1);
+#endif
 
   vector<string> bench_toks = split_ws(bench_opts);
   int argc2 = 1 + bench_toks.size();

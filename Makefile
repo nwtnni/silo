@@ -11,7 +11,11 @@ CHECK_INVARIANTS ?= 0
 # 2 = tcmalloc
 # 3 = flow
 # 4 = mimalloc
-USE_MALLOC_MODE ?= 1
+USE_MALLOC_MODE ?= 0
+
+# 0 = no CXL allocator
+# 1 = cxlalloc
+USE_CXL_MODE ?= 0
 
 MYSQL ?= 1
 MYSQL_SHARE_DIR ?= /x/stephentu/mysql-5.5.29/build/sql/share
@@ -27,7 +31,6 @@ MODE ?= perf
 
 # run with 'MASSTREE=0' to turn off masstree
 MASSTREE ?= 1
-DEPS_BUILD_DIR ?= build_clang_release
 
 ###############
 
@@ -35,14 +38,18 @@ DEBUG_S=$(strip $(DEBUG))
 CHECK_INVARIANTS_S=$(strip $(CHECK_INVARIANTS))
 EVENT_COUNTERS_S=$(strip $(EVENT_COUNTERS))
 USE_MALLOC_MODE_S=$(strip $(USE_MALLOC_MODE))
+USE_CXL_MODE_S=$(strip $(USE_CXL_MODE))
 MODE_S=$(strip $(MODE))
 MASSTREE_S=$(strip $(MASSTREE))
 MASSTREE_CONFIG:=--enable-max-key-len=1024
 
+# Assumes silo is initialized as cxlalloc submodule
+ROOT_MIMALLOC=$(TOP)/../mimalloc-bench/extern/mi2
+ROOT_CXLALLOC=$(TOP)/../..
+
 ifeq ($(DEBUG_S),1)
 	OSUFFIX_D=.debug
 	MASSTREE_CONFIG+=--enable-assertions
-	DEPS_BUILD_DIR=build_clang_debug
 else
 	MASSTREE_CONFIG+=--disable-assertions
 endif
@@ -80,7 +87,7 @@ else
 endif
 
 CXXFLAGS := -g -Wall -std=c++2b -funsigned-char -fno-strict-aliasing
-CXXFLAGS += -MD -Ithird-party/lz4 -DCONFIG_H=\"$(CONFIG_H)\" -I$(TOP)/../../deps/fmt/include -I$(TOP)/../../deps/mimalloc/include
+CXXFLAGS += -MD -Ithird-party/lz4 -DCONFIG_H=\"$(CONFIG_H)\"
 ifeq ($(DEBUG_S),1)
         CXXFLAGS += -fno-omit-frame-pointer -DDEBUG
 else
@@ -101,9 +108,12 @@ else
 endif
 
 TOP     := $(shell echo $${PWD-`pwd`})
-LDFLAGS := -lpthread -lnuma -lrt -lfmt \
-	-L$(TOP)/../../$(DEPS_BUILD_DIR)/bin/ -Wl,-rpath,$(TOP)/../../$(DEPS_BUILD_DIR)/bin/ \
-	-L$(TOP)/../../$(DEPS_BUILD_DIR)/bin/lib -Wl,-rpath,$(TOP)/../../$(DEPS_BUILD_DIR)/bin/lib
+LDFLAGS := -lpthread -lnuma -lrt -lfmt
+
+ifeq (${USE_CXL_MODE_S},1)
+	CPPFLAGS += -I$(ROOT_CXLALLOC)/cxlalloc-static/include -DUSE_CXL_MODE=1
+	LDFLAGS += -L$(ROOT_CXLALLOC)/target/release -lcxlalloc_static
+endif
 
 LZ4LDFLAGS := -Lthird-party/lz4 -llz4 -Wl,-rpath,$(TOP)/third-party/lz4
 
@@ -120,9 +130,8 @@ else ifeq ($(USE_MALLOC_MODE_S),3)
 	LDFLAGS+=-lflow
 	MASSTREE_CONFIG+=--with-malloc=flow
 else ifeq ($(USE_MALLOC_MODE_S),4)
+	CPPFLAGS+=-I$(ROOT_MIMALLOC)/include
 	CXXFLAGS+=-DUSE_MIMALLOC
-	LDFLAGS+=-lmimalloc
-	MASSTREE_CONFIG+=--with-malloc=mimalloc
 else
 	MASSTREE_CONFIG+=--with-malloc=malloc
 endif
@@ -158,7 +167,8 @@ OBJFILES := $(patsubst %.cc, $(O)/%.o, $(SRCFILES))
 
 MASSTREE_OBJFILES := $(patsubst masstree/%.cc, $(O)/%.o, $(MASSTREE_SRCFILES))
 
-BENCH_CXXFLAGS := $(CXXFLAGS) -I$(TOP)/../../$(DEPS_BUILD_DIR)/bin/include
+BENCH_CPPFLAGS := $(CPPFLAGS)
+BENCH_CXXFLAGS := $(CXXFLAGS)
 BENCH_LDFLAGS := $(LDFLAGS) -ldb_cxx -lz -lrt -lcrypt -laio -ldl -lssl -lcrypto -lfmt
 
 BENCH_SRCFILES = benchmarks/bdb_wrapper.cc \
@@ -189,11 +199,11 @@ all: $(O)/test
 
 $(O)/benchmarks/%.o: benchmarks/%.cc $(O)/buildstamp $(O)/buildstamp.bench $(OBJDEP)
 	@mkdir -p $(@D)
-	$(CXX) $(BENCH_CXXFLAGS) -c $< -o $@
+	$(CXX) $(BENCH_CPPFLAGS) $(BENCH_CXXFLAGS) -c $< -o $@
 
 $(O)/benchmarks/masstree/%.o: benchmarks/masstree/%.cc $(O)/buildstamp $(O)/buildstamp.bench $(OBJDEP)
 	@mkdir -p $(@D)
-	$(CXX) $(BENCH_CXXFLAGS) -c $< -o $@
+	$(CXX) $(BENCH_CPPFLAGS) $(BENCH_CXXFLAGS) -c $< -o $@
 
 $(O)/new-benchmarks/%.o: new-benchmarks/%.cc $(O)/buildstamp $(O)/buildstamp.bench $(OBJDEP)
 	@mkdir -p $(@D)
@@ -230,7 +240,7 @@ $(O)/stats_client: $(O)/stats_client.o
 
 masstree/config.h: $(O)/buildstamp.masstree masstree/configure masstree/config.h.in
 	rm -f $@
-	cd masstree; CXX=$(CXX) CPPFLAGS="-I$(TOP)/../../deps/fmt/include -I$(TOP)/../../deps/mimalloc/include" LDFLAGS=-L$(TOP)/../../$(DEPS_BUILD_DIR)/bin/ ./configure $(MASSTREE_CONFIG)
+	cd masstree; CC=$(CC) CXX=$(CXX) ./configure $(MASSTREE_CONFIG)
 	if test -f $@; then touch $@; fi
 
 masstree/configure masstree/config.h.in: masstree/configure.ac
@@ -240,13 +250,13 @@ masstree/configure masstree/config.h.in: masstree/configure.ac
 dbtest: $(O)/benchmarks/dbtest
 
 $(O)/benchmarks/dbtest: $(O)/benchmarks/dbtest.o $(OBJFILES) $(MASSTREE_OBJFILES) $(BENCH_OBJFILES) third-party/lz4/liblz4.so
-	$(CXX) -o $(O)/benchmarks/dbtest $^ $(BENCH_LDFLAGS) $(LZ4LDFLAGS)
+	$(CXX) -o $(O)/benchmarks/dbtest $^ $(BENCH_CPPFLAGS) $(BENCH_LDFLAGS) $(LZ4LDFLAGS)
 
 .PHONY: kvtest
 kvtest: $(O)/benchmarks/masstree/kvtest
 
 $(O)/benchmarks/masstree/kvtest: $(O)/benchmarks/masstree/kvtest.o $(OBJFILES) $(BENCH_OBJFILES)
-	$(CXX) -o $(O)/benchmarks/masstree/kvtest $^ $(BENCH_LDFLAGS)
+	$(CXX) -o $(O)/benchmarks/masstree/kvtest $^ $(BENCH_CPPFLAGS) $(BENCH_LDFLAGS)
 
 .PHONY: newdbtest
 newdbtest: $(O)/new-benchmarks/dbtest

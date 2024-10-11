@@ -7,6 +7,9 @@
 #include <vector>
 #include <utility>
 #include <string>
+#if USE_CXL_MODE == 1
+#include <cxlalloc.h>
+#endif
 
 #include "abstract_db.h"
 #include "../macros.h"
@@ -79,6 +82,10 @@ public:
   virtual void
   run()
   {
+#if USE_CXL_MODE == 1
+    cxlalloc_init("", 1ull << 34, 0xFF, 64, 0, 1);
+#endif
+
     { // XXX(stephentu): this is a hack
       scoped_rcu_region r; // register this thread in rcu region
     }
