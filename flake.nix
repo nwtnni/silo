@@ -18,6 +18,7 @@
             automake
             db
             fmt
+            gdb
             jemalloc
             libaio
             libxcrypt

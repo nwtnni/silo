@@ -30,9 +30,6 @@ extern "C" int mallctl(const char *name, void *oldp, size_t *oldlenp, void *newp
 #ifdef USE_TCMALLOC
 #include <google/heap-profiler.h>
 #endif
-#ifdef USE_MIMALLOC
-#include <mimalloc-new-delete.h>
-#endif
 
 using namespace std;
 using namespace util;

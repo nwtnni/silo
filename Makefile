@@ -15,6 +15,9 @@ USE_MALLOC_MODE ?= 0
 
 # 0 = no CXL allocator
 # 1 = cxlalloc
+# 2 = ralloc
+# 3 = cxl-shm
+# 4 = mimalloc
 USE_CXL_MODE ?= 0
 
 MYSQL ?= 1
@@ -44,7 +47,7 @@ MASSTREE_S=$(strip $(MASSTREE))
 MASSTREE_CONFIG:=--enable-max-key-len=1024
 
 # Assumes silo is initialized as cxlalloc submodule
-ROOT_MIMALLOC=$(TOP)/../mimalloc-bench/extern/mi2
+ROOT_MIMALLOC=$(TOP)/../mimalloc-bench/extern/cxl-mi2
 ROOT_CXLALLOC=$(TOP)/../..
 ROOT_RALLOC=$(TOP)/../mimalloc-bench/extern/r
 ROOT_CXL_SHM=$(TOP)/../mimalloc-bench/extern/cxl-shm
@@ -122,8 +125,12 @@ else ifeq (${USE_CXL_MODE_S},2)
 	O := $(O).ralloc
 else ifeq (${USE_CXL_MODE_S},3)
 	CPPFLAGS += -I$(ROOT_CXL_SHM)/include -DUSE_CXL_MODE=3
-	LDFLAGS += -L$(ROOT_CXL_SHM)/build -lcxlmalloc_static -lcxlmalloc -latomic -L$(ROOT_MIMALLOC)/out/release/static -lmimalloc
+	LDFLAGS += -L$(ROOT_CXL_SHM)/build -lcxlmalloc_static -lcxlmalloc -latomic -L$(ROOT_MIMALLOC)/out/static -lmimalloc
 	O := $(O).cxl-shm
+else ifeq (${USE_CXL_MODE_S},4)
+	CPPFLAGS += -I$(ROOT_MIMALLOC)/include -DUSE_CXL_MODE=4
+	LDFLAGS += -L$(ROOT_MIMALLOC)/build -lcxl_mimalloc_static -L$(ROOT_MIMALLOC)/build/mi2 -lmimalloc
+	O := $(O).mimalloc
 endif
 
 LZ4LDFLAGS := -Lthird-party/lz4 -llz4 -Wl,-rpath,$(TOP)/third-party/lz4
@@ -141,7 +148,6 @@ else ifeq ($(USE_MALLOC_MODE_S),3)
 	LDFLAGS+=-lflow
 	MASSTREE_CONFIG+=--with-malloc=flow
 else ifeq ($(USE_MALLOC_MODE_S),4)
-	CPPFLAGS+=-I$(ROOT_MIMALLOC)/include
 	CXXFLAGS+=-DUSE_MIMALLOC
 else
 	MASSTREE_CONFIG+=--with-malloc=malloc
